@@ -1,0 +1,140 @@
+* Convex Hull
+
+** Slow Brute
+#+name: ch-brute
+#+begin_src lisp
+(defun convex-hull-brute (points)
+  (do ((i points (cdr i))
+       (lines nil))
+      ((null i) (sorted-points lines))
+    (do ((j points (cdr j)))
+        ((null j))
+      (let ((p1 (car i))
+            (p2 (car j)))
+        (when (not (equal p1 p2))
+          (when (every (lambda (p)
+                         (if (or (equal p p1) (equal p p2))
+                             t
+                             (right-side-p p1 p2 p)))
+                       points)
+            (setf lines (cons (list p1 p2) lines))))))))
+#+end_src
+
+I need a function to determine the position of a point w.r.t to a directed line. The line travels from p1 -> p2 and we need to figure out the position of p. I think a simple vector intuition might help. Consider two vectors  p1 -> p2 and p1 -> p. Depending on the position of p the cross product of these two vectors will be either positive or negative.
+#+name: point-placement
+#+begin_src lisp
+(defun right-side-p (p1 p2 p)
+  (destructuring-bind ((x1 y1) (x2 y2) (x y)) (list p1 p2 p)
+    (< (* (- x x1) (- y2 y1))
+       (* (- x2 x1) (- y y1)))))
+#+end_src
+
+#+name: sorted-points
+#+begin_src lisp
+(defun sorted-points (line-segments)
+  "Given a unordered sequence of LINE-SEGMENTS return points in the cycle."
+  (do ((point-seq (list (caar line-segments)))
+       (p (cadar line-segments)))
+      ((equal p (caar line-segments)) (cons p point-seq))
+    (setf point-seq (cons p point-seq))
+    (setf p (cadr (find p line-segments :key #'car :test #'equal)))))
+#+end_src
+Simple test to see if it works.
+
+#+name: testing
+#+begin_src lisp :noweb yes :exports both
+<<ch-brute>>
+<<point-placement>>
+<<sorted-points>>
+(let ((points '((1 -1) (1 1) (-1 -1) (-1 1))))
+  (convex-hull-brute points))
+#+end_src
+
+#+RESULTS: testing
+| -1 |  1 |
+|  1 |  1 |
+|  1 | -1 |
+| -1 | -1 |
+| -1 |  1 |
+
+** Plotting
+A simple example to generate some points and use ~chull~ to generate convex hull in R.
+
+:ob-R-shenanigans:
+There seems to be some problems with using file as output device. It is working fine in repl but org-babel seems to be changing something.
+<2022-05-18 Wed> I am using ~output graphics file~ as parameters to the ~:results~ option to make it work. I am not sure why manually setting png to a file and then turning off the device is not working? Is it due to /ob-R/ handling things differently when ~:file~ option is set?
+:END:
+#+begin_src R :results output graphics file :file pts.png
+x <- 10*rnorm(10)
+y <- 10*rnorm(10)
+xy <- cbind(x, y)
+plot(c(-20, 20), c(-20, 20), type="n", axes=FALSE)
+points(xy)
+hpts <- chull(xy)
+hpts <- c(hpts, hpts[1])
+lines(xy[hpts, ])
+#+end_src
+
+#+RESULTS:
+[[file:pts.png]]
+
+** Testing
+#+name: generate-points
+#+begin_src R :cache yes
+x <- 10*rnorm(10)
+y <- 10*rnorm(10)
+cbind(x, y)
+#+end_src
+
+#+RESULTS[c9c16a67fc0735bda472291437fd255b7e9ff009]: generate-points
+|  6.62697302317174 | -0.96283811822685 |
+|  -18.778928504056 |   -5.159518002029 |
+|  -4.7218780172531 |  15.9934147697361 |
+| -18.2970077676151 | -2.79765806217855 |
+| 0.186951532197999 |  11.4947688646157 |
+| -9.26075960697184 |  17.8978876900545 |
+|  1.89521629429351 | -13.0584896716495 |
+| -4.86698649898822 |  2.75757578856707 |
+| -17.0022137763854 | -3.76199452741417 |
+| -5.26063626428407 | 0.357435693868595 |
+
+
+#+name: test-R-chull
+#+begin_src R :results output graphics file :file gen-R.png :var X=generate-points
+plot(c(-20, 20), c(-20, 20), type="n", axes=FALSE)
+X<-as.matrix(X)
+points(X)
+hpts <- chull(X)
+hpts <- c(hpts, hpts[1])
+lines(X[hpts, ])
+#+end_src
+
+#+RESULTS: test-R-chull
+[[file:gen-R.png]]
+
+
+#+name: test-lisp-brute-chull
+#+begin_src lisp :results value table :var points=generate-points :cache yes
+(convex-hull-brute points)
+#+end_src
+
+#+RESULTS[a75459fc85e2e928c0a6410f24b7b9ebe44175f7]: test-lisp-brute-chull
+|  1.8952163 |  -13.05849 |
+| -18.778929 |  -5.159518 |
+| -18.297009 |  -2.797658 |
+|  -9.260759 |  17.897888 |
+|  -4.721878 |  15.993415 |
+| 0.18695153 |  11.494769 |
+|   6.626973 | -0.9628381 |
+|  1.8952163 |  -13.05849 |
+
+,#+begin_src R :var X=generate-points L=test-lisp-brute-chull
+#+begin_src R :results output graphics file :file test-brute.png :var X=generate-points L=test-lisp-brute-chull
+plot(c(-20, 20), c(-20, 20), type="n", axes=FALSE)
+X<-as.matrix(X)
+points(X)
+lines(L)
+#+end_src
+
+#+RESULTS:
+[[file:test-brute.png]]

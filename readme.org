@@ -1,0 +1,2 @@
+* Algorithm in Computational Geometry
+This is a collection of programs that implement a few algorithms from computational geometry.
