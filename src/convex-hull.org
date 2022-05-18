@@ -42,7 +42,7 @@ I need a function to determine the position of a point w.r.t to a directed line.
 Simple test to see if it works.
 
 #+name: testing
-#+begin_src lisp :noweb yes :exports both
+#+begin_src lisp :noweb strip-export :exports both
 <<ch-brute>>
 <<point-placement>>
 <<sorted-points>>
@@ -64,7 +64,7 @@ A simple example to generate some points and use ~chull~ to generate convex hull
 There seems to be some problems with using file as output device. It is working fine in repl but org-babel seems to be changing something.
 <2022-05-18 Wed> I am using ~output graphics file~ as parameters to the ~:results~ option to make it work. I am not sure why manually setting png to a file and then turning off the device is not working? Is it due to /ob-R/ handling things differently when ~:file~ option is set?
 :END:
-#+begin_src R :results output graphics file :file pts.png
+#+begin_src R :results output graphics file :file pts.png :exports both
 x <- 10*rnorm(10)
 y <- 10*rnorm(10)
 xy <- cbind(x, y)
@@ -79,6 +79,7 @@ lines(xy[hpts, ])
 [[file:pts.png]]
 
 ** Testing
+Generate 10 random points using ~rnorm~.
 #+name: generate-points
 #+begin_src R :cache yes
 x <- 10*rnorm(10)
@@ -98,9 +99,9 @@ cbind(x, y)
 | -17.0022137763854 | -3.76199452741417 |
 | -5.26063626428407 | 0.357435693868595 |
 
-
+Create and plot the convex hull using ~chull~ from R.
 #+name: test-R-chull
-#+begin_src R :results output graphics file :file gen-R.png :var X=generate-points
+#+begin_src R :results output graphics file :file gen-R.png :var X=generate-points :exports both
 plot(c(-20, 20), c(-20, 20), type="n", axes=FALSE)
 X<-as.matrix(X)
 points(X)
@@ -113,8 +114,12 @@ lines(X[hpts, ])
 [[file:gen-R.png]]
 
 
+Find the convex hull using the brute force algorithm in lisp.
 #+name: test-lisp-brute-chull
-#+begin_src lisp :results value table :var points=generate-points :cache yes
+#+begin_src lisp :results value table :var points=generate-points :cache yes :noweb strip-export
+<<ch-brute>>
+<<point-placement>>
+<<sorted-points>>
 (convex-hull-brute points)
 #+end_src
 
@@ -128,8 +133,8 @@ lines(X[hpts, ])
 |   6.626973 | -0.9628381 |
 |  1.8952163 |  -13.05849 |
 
-,#+begin_src R :var X=generate-points L=test-lisp-brute-chull
-#+begin_src R :results output graphics file :file test-brute.png :var X=generate-points L=test-lisp-brute-chull
+Plot the above points as lines using R.
+#+begin_src R :results output graphics file :file test-brute.png :var X=generate-points L=test-lisp-brute-chull :exports both
 plot(c(-20, 20), c(-20, 20), type="n", axes=FALSE)
 X<-as.matrix(X)
 points(X)
